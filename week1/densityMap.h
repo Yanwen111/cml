@@ -7,10 +7,11 @@
 // Class that stores the density readings
 // and other related info
 class DensityMap {
-public:
+private:
+	// This should never change after initialization
 	int dim;
-	int radius;
 
+public:
 	// 3D array that stores the data
 	std::vector<std::vector<std::vector<float>>> cells;
 
@@ -18,6 +19,19 @@ public:
 	DensityMap(int dim);
 
 	// Adds a line of data between p1 and p2
+	// The area around the line is faded
+	// -----
+	// I do not recommend using this if you have a lot of data
+	// because the result will look blurry
+	// (like with ultrasound data !!!)
+	void addLineSmoothed(glm::vec3 p1, glm::vec3 p2, std::vector<float> vals, int radius = 5);
+
+	// Adds a line of data between p1 and p2
+	// The line is not smoothed with the surrounding area
+	// -----
+	// I recommend using this if you have a lot of data
+	// because if you use DensityMap::addLineSmoothed()
+	// then the result will look blurry
 	void addLine(glm::vec3 p1, glm::vec3 p2, std::vector<float> vals);
 
 	// Overwrites everything with zeroes
@@ -25,6 +39,12 @@ public:
 
 	// Returns the vertices in a form useful to OpenGL
 	std::vector<float> getVertices();
+
+	// Returns the cell densities
+	std::vector<float> getDensities();
+
+	// Returns dim
+	int getDim();
 };
 
 // Not being used right now, but maybe in the future

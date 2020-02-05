@@ -27,7 +27,8 @@
 #endif
 
 // Keyboard and mouse input functions
-void cursorPosCallback(GLFWwindow* window, double xpos, double ypos);
+void cursorPosMovementCallback(GLFWwindow* window, double xpos, double ypos);
+void cursorPosRotationCallback(GLFWwindow* window, double xpos, double ypos);
 void processKeyboardInput(GLFWwindow* window);
 
 // Updates the vertices on the graphics card
@@ -42,18 +43,16 @@ void sphereDemo(DensityMap& grid);
 void fanDemo(DensityMap& grid);
 
 // Used in the mouse movement callback
-struct MouseData {
-	double lastMouseX;
-	double lastMouseY;
-	bool firstMouse;
-};
+double lastMouseX;
+double lastMouseY;
+bool firstMouse;
 
 // Creating a Camera object
 Camera cam;
 
 int main() {
 	// Window title
-	std::string windowTitle = "Ultrasound";
+	std::string windowTitle = "Density Map";
 
 	// Initializing the OpenGL context
 	glfwInit();
@@ -73,7 +72,7 @@ int main() {
 
 	// Setting callbacks
 	glfwMakeContextCurrent(window);
-	glfwSetCursorPosCallback(window, cursorPosCallback);
+	glfwSetCursorPosCallback(window, cursorPosMovementCallback);
 
 	// Lock the cursor to the center of the window
 	// and make it invisible
@@ -87,47 +86,53 @@ int main() {
 
 	// Creating the shaders for the cells in the cube
 	// and for the lines of the border of the cube
-	Shader cellShader("/home/yanwen/CML_CS/cml/week1/cells.vs", "/home/yanwen/CML_CS/cml/week1/cells.fs");
-	Shader lineShader("/home/yanwen/CML_CS/cml/week1/lines.vs", "/home/yanwen/CML_CS/cml/week1/lines.fs");
+    Shader cellShader("/home/yanwen/CML_CS/cml/week1/cells.vs", "/home/yanwen/CML_CS/cml/week1/cells.fs");
+    Shader lineShader("/home/yanwen/CML_CS/cml/week1/lines.vs", "/home/yanwen/CML_CS/cml/week1/lines.fs");
 
 	// Allows blending (translucent drawing)
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	// Initializing mouse info
-	MouseData mouseData;
-	mouseData.lastMouseX = SCR_WIDTH / 2.0;
-	mouseData.lastMouseY = SCR_HEIGHT / 2.0;
-	mouseData.firstMouse = true;
+	lastMouseX = SCR_WIDTH / 2.0;
+	lastMouseY = SCR_HEIGHT / 2.0;
+	firstMouse = true;
 
-	glfwSetWindowUserPointer(window, &mouseData);
-	
 	// Creating the density map
 	int dim = 101;
 	DensityMap grid(dim);
 
 	// (Optional) Adds a fan-shaped arrangement of cells to the volume map
-	fanDemo(grid);
+	sphereDemo(grid);
 
 	// Get the vertices from the volume map
 	// in a form useful to OpenGL
-	std::vector<float> cellVertices = grid.getVertices();
+	std::vector<float> cellPositions = grid.getVertices();
+	std::vector<float> cellDensities = grid.getDensities();
 	
-	// Initializing the buffer storing the vertices
+	// Initializing the buffers storing the vertices
 	// of the volume map on the graphics card
-	unsigned int cellVAO, cellVBO;
-	glGenBuffers(1, &cellVBO);
+	unsigned int cellVAO, cellPositionVBO, cellDensityVBO;
+	glGenBuffers(1, &cellPositionVBO);
+	glGenBuffers(1, &cellDensityVBO);
 	glGenVertexArrays(1, &cellVAO);
 
 	glBindVertexArray(cellVAO);
 
-	glBindBuffer(GL_ARRAY_BUFFER, cellVBO);
-	glBufferData(GL_ARRAY_BUFFER, cellVertices.size() * sizeof(float), cellVertices.data(), GL_STATIC_DRAW);
+	// Cell positions
 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
+	glBindBuffer(GL_ARRAY_BUFFER, cellPositionVBO);
+	glBufferData(GL_ARRAY_BUFFER, cellPositions.size() * sizeof(float), cellPositions.data(), GL_STATIC_DRAW);
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
 	glEnableVertexAttribArray(0);
 
-	glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(3 * sizeof(float)));
+	// Data in each cell
+
+	glBindBuffer(GL_ARRAY_BUFFER, cellDensityVBO);
+	glBufferData(GL_ARRAY_BUFFER, cellDensities.size() * sizeof(float), cellDensities.data(), GL_STATIC_DRAW);
+	
+	glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, sizeof(float), 0);
 	glEnableVertexAttribArray(1);
 
 	// Array containing the coordinates of the vertices
@@ -205,8 +210,10 @@ int main() {
 		// between -1 and 1 that OpenGL can use
 		glm::dmat4 projection = glm::perspective(glm::radians(cam.fov), double(SCR_WIDTH) / SCR_HEIGHT, 0.01, 500.0);
 		glm::dmat4 camView = cam.getViewMatrix();
-		glm::dmat4 model = glm::scale(glm::dmat4{}, glm::dvec3(10.0 / (grid.dim - 1), 10.0 / (grid.dim - 1), 10.0 / (grid.dim - 1)));
-		model = glm::translate(model, glm::dvec3(-(grid.dim - 1) / 2.0, -(grid.dim - 1) / 2.0, -(grid.dim - 1) / 2.0));
+
+		int dim = grid.getDim();
+		glm::dmat4 model = glm::scale(glm::dmat4{}, glm::dvec3(10.0 / (dim - 1), 10.0 / (dim - 1), 10.0 / (dim - 1)));
+		model = glm::translate(model, glm::dvec3(-(dim - 1) / 2.0, -(dim - 1) / 2.0, -(dim - 1) / 2.0));
 
 		// Drawing the volume map
 		cellShader.use();
@@ -215,7 +222,7 @@ int main() {
 		cellShader.setMat4("model", model);
 
 		glBindVertexArray(cellVAO);
-		glDrawArrays(GL_TRIANGLES, 0, cellVertices.size() / 4);
+		glDrawArrays(GL_TRIANGLES, 0, cellDensities.size());
 
 		// Drawing the white lines
 		lineShader.use();
@@ -269,21 +276,19 @@ void processKeyboardInput(GLFWwindow *window) {
 	}
 }
 
-void cursorPosCallback(GLFWwindow* window, double xpos, double ypos) {
-	MouseData& mouseData = *(MouseData*)glfwGetWindowUserPointer(window);
-
+void cursorPosMovementCallback(GLFWwindow* window, double xpos, double ypos) {
 	// Ensures that the viewer faces forward on startup
-	if (mouseData.firstMouse) {
-		mouseData.lastMouseX = xpos;
-		mouseData.lastMouseY = ypos;
-		mouseData.firstMouse = false;
+	if (firstMouse) {
+		lastMouseX = xpos;
+		lastMouseY = ypos;
+		firstMouse = false;
 	}
 
 	// Updating the camera angle
-	double xoffset = xpos - mouseData.lastMouseX;
-	double yoffset = mouseData.lastMouseY - ypos;
-	mouseData.lastMouseX = xpos;
-	mouseData.lastMouseY = ypos;
+	double xoffset = xpos - lastMouseX;
+	double yoffset = lastMouseY - ypos;
+	lastMouseX = xpos;
+	lastMouseY = ypos;
 
 	cam.processMouseMovement(xoffset, yoffset);
 }
@@ -291,16 +296,18 @@ void cursorPosCallback(GLFWwindow* window, double xpos, double ypos) {
 void sphereDemo(DensityMap& grid) {
 	// Adds a sphere to the center of the volume map
 
-	for (int i = 0; i < grid.dim; i++) {
-		for (int j = 0; j < grid.dim; j++) {
-			for (int k = 0; k < grid.dim; k++) {
-				float xd = i - ((grid.dim - 1) / 2.0);
-				float yd = j - ((grid.dim - 1) / 2.0);
-				float zd = k - ((grid.dim - 1) / 2.0);
+	int dim = grid.getDim();
 
-				float mxd = (grid.dim - 1) / 2.0;
-				float myd = (grid.dim - 1) / 2.0;
-				float mzd = (grid.dim - 1) / 2.0;
+	for (int i = 0; i < dim; i++) {
+		for (int j = 0; j < dim; j++) {
+			for (int k = 0; k < dim; k++) {
+				float xd = i - ((dim - 1) / 2.0);
+				float yd = j - ((dim - 1) / 2.0);
+				float zd = k - ((dim - 1) / 2.0);
+
+				float mxd = (dim - 1) / 2.0;
+				float myd = (dim - 1) / 2.0;
+				float mzd = (dim - 1) / 2.0;
 
 				float distance = sqrt(xd * xd + yd * yd + zd * zd);
 				float maxDistance = sqrt(mxd * mxd + myd * myd + mzd * mzd);
@@ -324,14 +331,14 @@ void fanDemo(DensityMap& grid) {
 
 	float r = 0.3;
 
-	for (; a2 <= 3; a2 += 0.05) {
+	for (; a2 <= 3; a2 += 0.01) {
 		float x = r * sin(a1) * cos(a2);
 		float y = r * sin(a1) * sin(a2);
 		float z = r * cos(a1);
 
 		std::vector<float> vals;
 
-		for (int i = 0; i < 50; i++) {
+		for (int i = 0; i < 1000; i++) {
 			vals.push_back(1);
 		}
 
@@ -341,9 +348,9 @@ void fanDemo(DensityMap& grid) {
 
 void updateVertexBuffer(unsigned int& VBO, DensityMap& grid) {
 	// Gets the vertices from the density map
-	std::vector<float> vertices = grid.getVertices();
+	std::vector<float> densities = grid.getDensities();
 
 	// Writes the vertices to the vertex buffer on the graphics card
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size() * sizeof(float), vertices.data());
+	glBufferSubData(GL_ARRAY_BUFFER, 0, densities.size() * sizeof(float), densities.data());
 }
