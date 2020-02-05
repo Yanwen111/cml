@@ -1,0 +1,1 @@
+/usr/bin/c++  -g   CMakeFiles/week1.dir/glad.c.o CMakeFiles/week1.dir/main.cpp.o CMakeFiles/week1.dir/shader.cpp.o CMakeFiles/week1.dir/densityMap.cpp.o CMakeFiles/week1.dir/camera.cpp.o  -o week1 -lGL -lGLU -lglfw3 -lX11 -lXxf86vm -lXrandr -lpthread -lXi -ldl -lXinerama -lXcursor -lassimp 
