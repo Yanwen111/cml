@@ -103,7 +103,7 @@ int main() {
 	DensityMap grid(dim);
 
 	// (Optional) Adds a fan-shaped arrangement of cells to the volume map
-	sphereDemo(grid);
+	fanDemo(grid);
 
 	// Get the vertices from the volume map
 	// in a form useful to OpenGL
@@ -343,6 +343,7 @@ void fanDemo(DensityMap& grid) {
 		}
 
 		grid.addLine(vertex, vertex + glm::vec3(x, y, z), vals);
+		//grid.addLineSmoothed(vertex, vertex + glm::vec3(x, y, z), vals, 3);
 	}
 }
 
