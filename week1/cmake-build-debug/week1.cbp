@@ -90,6 +90,9 @@
 		<Unit filename="/home/yanwen/CML_CS/cml/week1/camera.h">
 			<Option target="week1"/>
 		</Unit>
+		<Unit filename="/home/yanwen/CML_CS/cml/week1/data.h">
+			<Option target="week1"/>
+		</Unit>
 		<Unit filename="/home/yanwen/CML_CS/cml/week1/densityMap.cpp">
 			<Option target="week1"/>
 		</Unit>

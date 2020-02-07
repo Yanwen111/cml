@@ -10,6 +10,7 @@ CMakeFiles/week1.dir/densityMap.cpp.o: ../densityMap.cpp
 CMakeFiles/week1.dir/densityMap.cpp.o: ../densityMap.h
 
 CMakeFiles/week1.dir/main.cpp.o: ../camera.h
+CMakeFiles/week1.dir/main.cpp.o: ../data.h
 CMakeFiles/week1.dir/main.cpp.o: ../densityMap.h
 CMakeFiles/week1.dir/main.cpp.o: ../main.cpp
 CMakeFiles/week1.dir/main.cpp.o: ../shader.h

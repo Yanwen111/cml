@@ -3,13 +3,13 @@
 
 # compile C with /usr/bin/cc
 # compile CXX with /usr/bin/c++
-C_FLAGS = -g  
+C_FLAGS = -g   -O3
 
 C_DEFINES = 
 
 C_INCLUDES = 
 
-CXX_FLAGS = -g   -std=gnu++14
+CXX_FLAGS = -g   -O3 -std=gnu++14
 
 CXX_DEFINES = 
 
